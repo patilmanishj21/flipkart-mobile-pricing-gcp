@@ -13,6 +13,8 @@ import argparse
 #     def process(self, element):
 #         print(element)
 
+table_spec = 'flipkart.mobile_prices'
+table_schema='Brand:STRING, Model:STRING, Color:STRING, Memory:STRING, Storage:STRING, Rating:FLOAT, Selling_Price:INT64, Original_Price:INT64'
 
 class GreaterThanAvg(beam.DoFn):
     def process(self, element,side_input):
@@ -53,7 +55,10 @@ def run(argv=None, save_main_session=True):
             maindata| "greater than avg" >> beam.ParDo(GreaterThanAvg(),beam.pvalue.AsList(side_input)) #pass the sideinput to Pardo GreaterThanAvg\
             | "join the data">> beam.Map(lambda x:','.join(x)) \
             | "replace with zero" >> beam.Map(replace_space_with_zero) \
-            | "write to file " >> beam.io.WriteToText(known_args.output)
+            | "Write to BQ" >> beam.io.WriteToBigQuery(table_spec, schema=table_schema,
+                                                       write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
+                                                       create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED)
+            #| "write to file " >> beam.io.WriteToText(known_args.output)
             #| beam.Map(print)
             )
 
