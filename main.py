@@ -9,9 +9,9 @@ import argparse
 #inputfile="F:/Projects/Flipkart-mobile-prices/flipkart_mobiles.csv"
 #outputfile="F:/Projects/Flipkart-mobile-prices/avgprice"
 
-class PrintFn(beam.DoFn):
-    def process(self, element):
-        print(element)
+# class PrintFn(beam.DoFn):
+#     def process(self, element):
+#         print(element)
 
 
 class GreaterThanAvg(beam.DoFn):
@@ -34,31 +34,33 @@ def run(argv=None, save_main_session=True):
     pipelineoptions.view_as(SetupOptions).save_main_session = save_main_session
 
 
-    with beam.Pipeline() as p:
+    with beam.Pipeline(options=pipelineoptions) as p:
 
         maindata=(
             p| "Reading file" >> beam.io.ReadFromText(known_args.input,skip_header_lines=1)   #read file data into pcollection maindata
             |"Split" >> beam.Map(lambda x:x.split(","))
             )
-        Gettotalcount=(
-            maindata | "total Count" >> beam.combiners.Count.Globally() |  'print-total' >> beam.ParDo(PrintFn())  #get total counts of record
-        )
+
+        # Gettotalcount=(
+        #     maindata | "total Count" >> beam.combiners.Count.Globally() |  'print-total' >> beam.ParDo(PrintFn())  #get total counts of record
+        # )
+
         side_input=(
          maindata | "Side input pricing " >> beam.Map(lambda x:int(x[7]))  # price column x[7] to calculate avg
         )
 
         greater_than_avg=(
-            maindata| "Calculate avg values" >> beam.ParDo(GreaterThanAvg(),beam.pvalue.AsList(side_input)) #pass the sideinput to Pardo GreaterThanAvg\
-            | beam.Map(lambda x:','.join(x)) \
-            | beam.Map(replace_space_with_zero) \
+            maindata| "greater than avg" >> beam.ParDo(GreaterThanAvg(),beam.pvalue.AsList(side_input)) #pass the sideinput to Pardo GreaterThanAvg\
+            | "join the data">> beam.Map(lambda x:','.join(x)) \
+            | "replace with zero" >> beam.Map(replace_space_with_zero) \
+            | "write to file " >> beam.io.WriteToText(known_args.output)
             #| beam.Map(print)
             )
-        Getavgcount = (
-                greater_than_avg | "get avg Count" >> beam.combiners.Count.Globally() | 'print-avg' >> beam.ParDo(PrintFn()) #get avg value count
-        )
-        Write=(
-                greater_than_avg | "write to file " >> beam.io.WriteToText(known_args.output) #write to file
-        )
+
+        # Getavgcount = (
+        #         greater_than_avg | "get avg Count" >> beam.combiners.Count.Globally() | 'print-avg' >> beam.ParDo(PrintFn()) #get avg value count
+        # )
+
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
