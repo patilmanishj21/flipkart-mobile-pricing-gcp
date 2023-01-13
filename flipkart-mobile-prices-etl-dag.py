@@ -29,6 +29,7 @@ with models.DAG(
         default_args=default_args,
         start_date=datetime.datetime(2021, 1, 1),
         # Not scheduled, trigger only
+        #schedule_interval=datetime.timedelta(days=1) removed for trigger from cloud function
         schedule_interval=None,
 ) as dag:
     dataflow_job_file_to_bq = DataflowCreatePythonJobOperator(
